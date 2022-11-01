@@ -1,5 +1,8 @@
 import sha1 from 'sha1';
 import dbClient from '../utils/db';
+import redisClient from '../utils/redis';
+
+const { ObjectId } = require('mongodb');
 
 class UsersContoller {
   /**
@@ -24,6 +27,28 @@ class UsersContoller {
     const user = await usersCollection.insertOne({ email, password: hashedPwd });
 
     return res.status(201).send({ id: user.insertedId, email });
+  }
+
+  /**
+   * Defines the endpoint 'GET /users/me'
+   * It retrieves a user from its authentication ID. Otherwise,
+   * sends an error (Unauthorized') with a status code 401.
+   * @param {object} req Express request object.
+   * @param {object} res Express response object.
+   */
+  static async getMe(req, res) {
+    const token = req.header('X-Token') || null;
+    if (!token) return res.status(401).send({ error: 'Unauthorized' });
+
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+
+    const usersCollection = dbClient.db.collection('users');
+    const user = await usersCollection.findOne({ _id: ObjectId(userId) });
+
+    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+    return res.status(200).send({ id: user._id, email: user.email });
   }
 }
 
