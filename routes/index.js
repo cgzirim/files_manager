@@ -1,6 +1,6 @@
 import express from 'express';
 import AppController from '../controllers/AppController';
-import UsersContoller from '../controllers/UsersContoller';
+import UsersController from '../controllers/UsersController';
 
 const router = express.Router();
 
@@ -11,6 +11,6 @@ router.get('/status', AppController.getStatus);
 router.get('/stats', AppController.getStats);
 
 /** Route to create a new user */
-router.post('/users', UsersContoller.postNew);
+router.post('/users', UsersController.postNew);
 
 module.exports = router;
