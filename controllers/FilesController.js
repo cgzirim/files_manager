@@ -30,7 +30,7 @@ class FilesController {
     const { data } = req.body;
 
     if (!name) return res.status(400).send({ error: 'Missing name' });
-    if (!type) return res.status(400).send({ error: 'Missing type ' });
+    if (!type) return res.status(400).send({ error: 'Missing type' });
     if (!data && type !== 'folder') return res.status(400).send({ error: 'Missing data' });
 
     const filesCollection = dbClient.db.collection('files');
@@ -57,8 +57,8 @@ class FilesController {
     const filePath = `${folderPath}/${uuidv4()}`;
     const fileContent = Buffer.from(data, 'base64');
 
-    const writeFileAsync = promisify(fs.writeFile);
-    await writeFileAsync(filePath, fileContent);
+    fs.mkdir(folderPath, () => res.status(500));
+    fs.writeFile(filePath, fileContent, () => res.status(500));
 
     newFile.localPath = filePath;
     const insertInfo = await filesCollection.insertOne(newFile);
