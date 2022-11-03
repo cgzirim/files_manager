@@ -136,11 +136,14 @@ class FilesController {
     if (!user) return res.status(401).send({ error: 'Unauthorized' });
 
     const page = req.query.page || 0;
-    const parentId = req.query.parentId || 0;
+    let parentId = req.query.parentId || 0;
     const filesCollection = dbClient.db.collection('files');
 
+    if (parentId !== 0) parentId = ObjectId(parentId);
+    else parentId = parentId.toString();
+
     const pipeline = [
-      { $match: { userId: ObjectId(userId), parentId: ObjectId(parentId) } },
+      { $match: { userId: ObjectId(userId), parentId } },
       { $sort: { _id: -1 } },
       { $skip: page * 20 }, { $limit: 20 },
       {
