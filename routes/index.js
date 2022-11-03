@@ -24,6 +24,13 @@ router.get('/connect', AuthController.getConnect);
 /** Route to sign-out a user based on its authentication token */
 router.get('/disconnect', AuthController.getDisconnect);
 
+/** Route to create a new file in DB and in disk */
 router.post('/files', FilesController.postUpload);
+
+/** Route to retrieve all users file document for a specific parentId */
+router.get('/files', FilesController.getIndex);
+
+/** Route to retrieve a file document based on its ID */
+router.get('/files/:id', FilesController.getShow);
 
 module.exports = router;
