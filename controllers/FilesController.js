@@ -6,6 +6,12 @@ const fs = require('fs');
 const { ObjectId } = require('mongodb');
 
 class FilesController {
+  // static prepareResponse(data, dict=false, array=false) {
+  //   if (dict) {
+  //     dict.userId =
+  //   }
+  // }
+
   /**
     * Defines the endpoint 'POST /files'.
     * It creates a new file in DB and in disk.
@@ -52,12 +58,14 @@ class FilesController {
       name,
       type,
       isPublic,
-      parentId: ObjectId(parentId),
+      parentId,
     };
 
     if (newFile.type === 'folder') {
       const insertInfo = await filesCollection.insertOne(newFile);
       delete newFile._id;
+      // newFile.userId = userId;
+      console.log(newFile);
       return res.status(201).send({ id: insertInfo.insertedId, ...newFile });
     }
 
@@ -69,8 +77,14 @@ class FilesController {
     fs.writeFile(filePath, fileContent, () => res.status(500));
 
     newFile.localPath = filePath;
+    newFile.parentId = ObjectId(parentId);
     const insertInfo = await filesCollection.insertOne(newFile);
+
+    // prepare response data:
     delete newFile._id;
+    // newFile.userId = userId;
+    console.log(newFile);
+
     return res.status(201).send({ id: insertInfo.insertedId, ...newFile });
   }
 
