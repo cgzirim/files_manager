@@ -48,7 +48,11 @@ class FilesController {
     }
 
     const newFile = {
-      userId, name, type, isPublic, parentId,
+      userId: ObjectId(userId),
+      name,
+      type,
+      isPublic,
+      parentId: ObjectId(parentId),
     };
 
     if (newFile.type === 'folder') {
@@ -93,7 +97,11 @@ class FilesController {
     const fileId = req.params.id;
     const filesCollection = dbClient.db.collection('files');
 
-    const file = await filesCollection.findOne({ userId, _id: ObjectId(fileId) });
+    const file = await filesCollection.findOne({
+      _id: ObjectId(fileId),
+      userId: ObjectId(userId),
+    });
+
     if (!file) return res.status(404).send({ error: 'Not found' });
 
     delete file._id;
@@ -124,7 +132,8 @@ class FilesController {
     const filesCollection = dbClient.db.collection('files');
 
     const pipeline = [
-      { $match: { userId, parentId } }, { $sort: { _id: -1 } },
+      { $match: { userId: ObjectId(userId), parentId: ObjectId(parentId) } },
+      { $sort: { _id: -1 } },
       { $skip: page * 20 }, { $limit: 20 },
       {
         $project: {
