@@ -1,4 +1,4 @@
-import mime, { contentType } from 'mime-types';
+import mime from 'mime-types';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import dbClient from '../utils/db';
@@ -56,7 +56,6 @@ class FilesController {
       isPublic,
       parentId,
     };
-
     if (newFile.type === 'folder') {
       const insertInfo = await filesCollection.insertOne(newFile);
       delete newFile._id;
@@ -92,7 +91,6 @@ class FilesController {
     if (!token) return res.status(401).send({ error: 'Unauthorized' });
 
     const userId = await redisClient.get(`auth_${token}`);
-
     const usersCollection = dbClient.db.collection('users');
     const user = await usersCollection.findOne({ _id: ObjectId(userId) });
 
@@ -111,7 +109,6 @@ class FilesController {
       _id: ObjectId(fileId),
       userId: ObjectId(userId),
     });
-
     if (!file) return res.status(404).send({ error: 'Not found' });
 
     delete file._id;
@@ -132,7 +129,6 @@ class FilesController {
     if (!token) return res.status(401).send({ error: 'Unauthorized' });
 
     const userId = await redisClient.get(`auth_${token}`);
-
     const usersCollection = dbClient.db.collection('users');
     const user = await usersCollection.findOne({ _id: ObjectId(userId) });
 
@@ -162,7 +158,6 @@ class FilesController {
       },
     ];
     const files = await filesCollection.aggregate(pipeline).toArray();
-
     return res.status(200).json(files);
   }
 
@@ -181,7 +176,6 @@ class FilesController {
     if (!token) return res.status(401).send({ error: 'Unauthorized' });
 
     const userId = await redisClient.get(`auth_${token}`);
-
     const usersCollection = dbClient.db.collection('users');
     const user = await usersCollection.findOne({ _id: ObjectId(userId) });
 
@@ -200,7 +194,6 @@ class FilesController {
       _id: ObjectId(fileId),
       userId: ObjectId(userId),
     });
-
     if (!file) return res.status(404).send({ error: 'Not found' });
 
     await filesCollection.updateOne(
@@ -231,7 +224,6 @@ class FilesController {
     if (!token) return res.status(401).send({ error: 'Unauthorized' });
 
     const userId = await redisClient.get(`auth_${token}`);
-
     const usersCollection = dbClient.db.collection('users');
     const user = await usersCollection.findOne({ _id: ObjectId(userId) });
 
@@ -250,7 +242,6 @@ class FilesController {
       _id: ObjectId(fileId),
       userId: ObjectId(userId),
     });
-
     if (!file) return res.status(404).send({ error: 'Not found' });
 
     await filesCollection.updateOne(
@@ -273,10 +264,11 @@ class FilesController {
    * @param {object} res Express response object.
    * @returns 200 HTTP status code if the file's data was retrieved successfully
    *          400 HTTP status code if the file ID is not in BSON format
-   *          401 HTTP status code if the user is unauthorized
-   *            - a user is only authenticated if the file document (folder or file)
-   *              is not public (isPublic: false)
-   *          404 HTTP status code if the file or the user was not found
+   *          404 HTTP status code if:
+   *            - no file document is linked to the ID passed as parameter
+   *            - the file document (folder or file) is not public (isPublic: false)
+   *              and no user authenticate or not the owner of the file
+   *            - the file is not locally present
    */
   static async getFile(req, res) {
     const fileId = req.params.id;
@@ -294,12 +286,12 @@ class FilesController {
 
     if (file.isPublic === false) {
       const token = req.header('X-Token') || null;
-      if (!token) return res.status(401).send({ error: 'Unauthorized' });
+      if (!token) return res.status(404).send({ error: 'Not found' });
 
       const userId = await redisClient.get(`auth_${token}`);
       const usersCollection = dbClient.db.collection('users');
       const user = await usersCollection.findOne({ _id: ObjectId(userId) });
-      if (!user) return res.status(401).send({ error: 'Unauthorized' });
+      if (!user) return res.status(404).send({ error: 'Not found' });
 
       file = await filesCollection.findOne({
         _id: ObjectId(fileId),
