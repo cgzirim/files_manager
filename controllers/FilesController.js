@@ -6,21 +6,15 @@ const fs = require('fs');
 const { ObjectId } = require('mongodb');
 
 class FilesController {
-  // static prepareResponse(data, dict=false, array=false) {
-  //   if (dict) {
-  //     dict.userId =
-  //   }
-  // }
-
   /**
     * Defines the endpoint 'POST /files'.
     * It creates a new file in DB and in disk.
     * @param {object} req Express request object
     * @param {object} res Express response object
     * @returns 400 HTTP status code if the request body is missing a mandatory
-    *             field,
-    *         401 HTTP status code if the user is unauthorized,
-    *         201 HTTP status code if the new file has been created successfully
+    *             field
+    *          401 HTTP status code if the user is unauthorized
+    *          201 HTTP status code if the new file has been created successfully
     */
   static async postUpload(req, res) {
     const token = req.header('X-Token') || null;
@@ -87,9 +81,9 @@ class FilesController {
    * It retrieves a file document based on the ID
    * @param {object} req Express request object
    * @param {object} res Express request object
-   * @returns 200 HTTP status if the file document was retrieved successfully
-   *          404 HTTP status if the file document was not found
-   *          401 HTTP status if the user is unauthorized
+   * @returns 200 HTTP status code if the file document was retrieved successfully
+   *          404 HTTP status code if the file document was not found
+   *          401 HTTP status code if the user is unauthorized
    */
   static async getShow(req, res) {
     const token = req.header('X-Token') || null;
@@ -104,6 +98,12 @@ class FilesController {
 
     const fileId = req.params.id;
     const filesCollection = dbClient.db.collection('files');
+
+    try {
+      ObjectId(fileId);
+    } catch (err) {
+      return res.status(400).send({ error: 'Id not in BSON format' });
+    }
 
     const file = await filesCollection.findOne({
       _id: ObjectId(fileId),
@@ -121,8 +121,9 @@ class FilesController {
    * It retrieves all users file document for a specific parentId paginated
    * @param {object} req Express request object
    * @param {object} res Express response object
-   * @returns 200 HTTP status if the file documents was successully retrieved
-   *          401 HTTP status if the user is authorized.
+   * @returns 200 HTTP status code if the file documents was successully retrieved
+   *          401 HTTP status code if the user is authorized.
+   *          400 HTTP status code if the file Id is not in BSON format
    */
   static async getIndex(req, res) {
     const token = req.header('X-Token') || null;
@@ -161,6 +162,106 @@ class FilesController {
     const files = await filesCollection.aggregate(pipeline).toArray();
 
     return res.status(200).json(files);
+  }
+
+  /**
+   * Defines the enpoint 'PUT /files/:id/publish'
+   * It sets isPublic to 'true' on the file document based on the ID:
+   * @param {object} req Express request object
+   * @param {object} res Express response object
+   * @returns 200 HTTP status code if the file document was updated successfully
+   *          404 HTTP status code if the file document was not found
+   *          401 HTTP status code if the user is unauthorized
+   *          400 HTTP status code if the file Id is not in BSON format
+   */
+  static async putPublish(req, res) {
+    const token = req.header('X-Token') || null;
+    if (!token) return res.status(401).send({ error: 'Unauthorized' });
+
+    const userId = await redisClient.get(`auth_${token}`);
+
+    const usersCollection = dbClient.db.collection('users');
+    const user = await usersCollection.findOne({ _id: ObjectId(userId) });
+
+    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+    const fileId = req.params.id;
+    const filesCollection = dbClient.db.collection('files');
+
+    try {
+      ObjectId(fileId);
+    } catch (err) {
+      return res.status(400).send({ error: 'Id not in BSON format' });
+    }
+
+    const file = await filesCollection.findOne({
+      _id: ObjectId(fileId),
+      userId: ObjectId(userId),
+    });
+
+    if (!file) return res.status(404).send({ error: 'Not found' });
+
+    await filesCollection.updateOne(
+      {
+        _id: ObjectId(fileId),
+        userId: ObjectId(userId),
+      },
+      { $set: { isPublic: 'true' } },
+    );
+
+    delete file._id;
+    file.isPublic = 'true';
+    return res.status(200).send({ ...file });
+  }
+
+  /**
+   * Defines the enpoint 'PUT /files/:id/unpublish'
+   * It sets isPublic to 'false' on the file document based on the ID:
+   * @param {object} req Express request object
+   * @param {object} res Express response object
+   * @returns 200 HTTP status code if the file document was updated successfully
+   *          404 HTTP status code if the file document was not found
+   *          401 HTTP status code if the user is unauthorized
+   *          400 HTTP status code if the file Id is not in BSON format
+   */
+  static async putUnpublish(req, res) {
+    const token = req.header('X-Token') || null;
+    if (!token) return res.status(401).send({ error: 'Unauthorized' });
+
+    const userId = await redisClient.get(`auth_${token}`);
+
+    const usersCollection = dbClient.db.collection('users');
+    const user = await usersCollection.findOne({ _id: ObjectId(userId) });
+
+    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+    const fileId = req.params.id;
+    const filesCollection = dbClient.db.collection('files');
+
+    try {
+      ObjectId(fileId);
+    } catch (err) {
+      return res.status(400).send({ error: 'Id not in BSON format' });
+    }
+
+    const file = await filesCollection.findOne({
+      _id: ObjectId(fileId),
+      userId: ObjectId(userId),
+    });
+
+    if (!file) return res.status(404).send({ error: 'Not found' });
+
+    await filesCollection.updateOne(
+      {
+        _id: ObjectId(fileId),
+        userId: ObjectId(userId),
+      },
+      { $set: { isPublic: 'false' } },
+    );
+
+    delete file._id;
+    file.isPublic = 'false';
+    return res.status(200).send({ ...file });
   }
 }
 
