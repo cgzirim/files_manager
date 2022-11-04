@@ -1,3 +1,5 @@
+import mime, { contentType } from 'mime-types';
+import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
@@ -262,6 +264,62 @@ class FilesController {
     delete file._id;
     file.isPublic = false;
     return res.status(200).send({ ...file });
+  }
+
+  /**
+   * Defines the endpoint 'GET /files/:id/data'
+   * It retrieves the content of the file document based on the ID
+   * @param {object} req Express request object.
+   * @param {object} res Express response object.
+   * @returns 200 HTTP status code if the file's data was retrieved successfully
+   *          400 HTTP status code if the file ID is not in BSON format
+   *          401 HTTP status code if the user is unauthorized
+   *            - a user is only authenticated if the file document (folder or file)
+   *              is not public (isPublic: false)
+   *          404 HTTP status code if the file or the user was not found
+   */
+  static async getFile(req, res) {
+    const fileId = req.params.id;
+
+    try {
+      ObjectId(fileId);
+    } catch (err) {
+      return res.status(400).send({ error: 'Id not in BSON format' });
+    }
+
+    const filesCollection = dbClient.db.collection('files');
+
+    let file = await filesCollection.findOne({ _id: ObjectId(fileId) });
+    if (!file) return res.status(404).send({ error: 'Not found' });
+
+    if (file.isPublic === false) {
+      const token = req.header('X-Token') || null;
+      if (!token) return res.status(401).send({ error: 'Unauthorized' });
+
+      const userId = await redisClient.get(`auth_${token}`);
+      const usersCollection = dbClient.db.collection('users');
+      const user = await usersCollection.findOne({ _id: ObjectId(userId) });
+      if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+      file = await filesCollection.findOne({
+        _id: ObjectId(fileId),
+        userId: ObjectId(userId),
+      });
+      if (!file) return res.status(404).send({ error: 'Not found' });
+    }
+
+    if (file.type === 'folder') return res.status(400).send({ error: "A folder doesn't have content" });
+
+    const readFileAsync = promisify(fs.readFile);
+    const fileContent = await readFileAsync(file.localPath, 'utf-8');
+
+    if (fileContent) {
+      const mimeType = mime.contentType(file.name);
+      res.set('Content-Type', mimeType);
+      return res.status(200).send(fileContent);
+    }
+
+    return res.status(404).send({ error: 'Not found' });
   }
 }
 
