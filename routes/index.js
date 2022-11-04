@@ -33,8 +33,10 @@ router.get('/files', FilesController.getIndex);
 /** Route to retrieve a file document based on its ID */
 router.get('/files/:id', FilesController.getShow);
 
+/** Route to set isPublic value of a file Document to 'true' */
 router.put('/files/:id/publish', FilesController.putPublish);
 
+/** Route to set isPublic value of a file Document to 'false' */
 router.put('/files/:id/unpublish', FilesController.putUnpublish);
 
 module.exports = router;
