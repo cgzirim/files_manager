@@ -206,11 +206,11 @@ class FilesController {
         _id: ObjectId(fileId),
         userId: ObjectId(userId),
       },
-      { $set: { isPublic: 'true' } },
+      { $set: { isPublic: true } },
     );
 
     delete file._id;
-    file.isPublic = 'true';
+    file.isPublic = true;
     return res.status(200).send({ ...file });
   }
 
@@ -256,11 +256,11 @@ class FilesController {
         _id: ObjectId(fileId),
         userId: ObjectId(userId),
       },
-      { $set: { isPublic: 'false' } },
+      { $set: { isPublic: false } },
     );
 
     delete file._id;
-    file.isPublic = 'false';
+    file.isPublic = false;
     return res.status(200).send({ ...file });
   }
 }
