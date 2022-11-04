@@ -6,6 +6,7 @@ import redisClient from '../utils/redis';
 
 const fs = require('fs');
 const { ObjectId } = require('mongodb');
+const { exec } = require('child_process');
 
 class FilesController {
   /**
@@ -301,17 +302,19 @@ class FilesController {
     }
 
     if (file.type === 'folder') return res.status(400).send({ error: "A folder doesn't have content" });
+    if (!fs.existsSync(file.localPath)) return res.status(404).send({ error: 'Not found' });
 
     const readFileAsync = promisify(fs.readFile);
     const fileContent = await readFileAsync(file.localPath, 'utf-8');
 
-    if (fileContent) {
-      const mimeType = mime.contentType(file.name);
-      res.set('Content-Type', mimeType);
-      return res.status(200).send(fileContent);
-    }
+    // identify file type:
+    const execAsyc = promisify(exec);
+    const { stdout } = await execAsyc(`file --mime ${file.localPath}`);
+    let fileType = stdout.split(':')[1];
+    [fileType] = fileType.split(';');
 
-    return res.status(404).send({ error: 'Not found' });
+    res.set('Content-Type', mime.contentType(fileType));
+    return res.status(200).send(fileContent);
   }
 }
 
