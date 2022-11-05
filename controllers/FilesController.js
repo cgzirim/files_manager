@@ -1,3 +1,4 @@
+import Bull from 'bull';
 import mime from 'mime-types';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
@@ -73,6 +74,13 @@ class FilesController {
     newFile.localPath = filePath;
     if (parentId !== 0) newFile.parentId = ObjectId(parentId);
     const insertInfo = await filesCollection.insertOne(newFile);
+
+    if (newFile.type === 'image') {
+      // create a job that will be processed in the background to generate
+      // thumbnails for the file.
+      const fileQueue = new Bull('file-queue');
+      fileQueue.add({ userId, fileId: insertInfo.insertedId });
+    }
 
     delete newFile._id;
     return res.status(201).send({ id: insertInfo.insertedId, ...newFile });
@@ -302,10 +310,17 @@ class FilesController {
     }
 
     if (file.type === 'folder') return res.status(400).send({ error: "A folder doesn't have content" });
-    if (!fs.existsSync(file.localPath)) return res.status(404).send({ error: 'Not found' });
 
-    const readFileAsync = promisify(fs.readFile);
-    const fileContent = await readFileAsync(file.localPath, 'utf-8');
+    // Based on size in request query, return the correct local file
+    const fileSize = req.query.size;
+    if (fileSize) {
+      if (!fs.existsSync(`${file.localPath}_${fileSize}`)) {
+        return res.status(404).send({ error: 'Not found' });
+      }
+      return res.status(200).sendFile(`${file.localPath}_${fileSize}`);
+    }
+
+    if (!fs.existsSync(file.localPath)) return res.status(404).send({ error: 'Not found' });
 
     // identify file type:
     const execAsyc = promisify(exec);
@@ -314,7 +329,7 @@ class FilesController {
     [fileType] = fileType.split(';');
 
     res.set('Content-Type', mime.contentType(fileType));
-    return res.status(200).send(fileContent);
+    return res.status(200).sendFile(file.localPath);
   }
 }
 
