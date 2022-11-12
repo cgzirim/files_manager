@@ -24,19 +24,6 @@ async function addUser(data) {
   return [userInfo, usertoken];
 }
 
-async function addFile(fileName, userID, fileType, parentID, isPublicBool) {
-  const data = {
-    userId: userID,
-    type: fileType,
-    name: fileName,
-    isPublic: isPublicBool,
-    parentId: parentID,
-  };
-  const fileInfo = await dbClient.db.collection('files').insertOne(data);
-
-  return fileInfo;
-}
-
 describe('filesController', () => {
   after(async () => {
     await dbClient.db.collection('files').deleteMany({});
@@ -617,11 +604,6 @@ describe('filesController', () => {
       };
       mockFileInfo1 = await dbClient.db.collection('files').insertOne(mockFile);
     });
-
-    // afterEach(async () => {
-    //   await dbClient.db.collection('files').deleteMany({});
-    //   await dbClient.db.collection('users').deleteMany({});
-    // });
 
     it('fails when no file is linked to :id', async () => {
       const res = await request(app).get('/files/5f1e879ec7ba06511e683b22/data');
