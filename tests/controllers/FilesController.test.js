@@ -1,3 +1,5 @@
+/* eslint-disable jest/no-if */
+/* eslint-disable no-await-in-loop */
 /* eslint-disable no-undef */
 /* eslint-disable jest/expect-expect */
 /* eslint-disable jest/no-disabled-tests */
@@ -14,6 +16,10 @@ import app from '../../server';
 import dbClient from '../../utils/db';
 import redisClient from '../../utils/redis';
 
+const { exec } = require('child_process');
+
+const execAsyc = promisify(exec);
+
 const fs = require('fs');
 
 async function addUser(data) {
@@ -28,6 +34,7 @@ describe('filesController', () => {
   after(async () => {
     await dbClient.db.collection('files').deleteMany({});
     await dbClient.db.collection('users').deleteMany({});
+    await execAsyc('rm -r /tmp/files_manager');
   });
 
   describe('pOST /files', () => {
@@ -346,10 +353,7 @@ describe('filesController', () => {
       const res = await request(app).get('/files')
         .set('X-Token', `${mockUserToken}`);
       expect(res.statusCode).to.equal(200);
-      expect(res.body.length).to.equal(1);
-      expect(res.body[0].parentId).to.equal('0');
-      expect(res.body[0].name).to.equal('Notes');
-      expect(res.body[0].type).to.equal('folder');
+      expect(res.body.length).to.equal(0);
     });
 
     it("gets no file when 'parentId' is wrong and no 'page'", async () => {
@@ -396,6 +400,88 @@ describe('filesController', () => {
         .query({
           page: 5,
           parentId: `${mockFolderInfo.ops[0]._id.toString()}`,
+        })
+        .set('X-Token', `${mockUserToken}`);
+      expect(res.statusCode).to.equal(200);
+      expect(res.body.length).to.equal(0);
+    });
+  });
+
+  describe('gET /files/me', () => {
+    let mockUserInfo = null;
+    let mockUserToken = null;
+    const mockUser = { email: 'tester@test.com', password: sha1('secret~!') };
+
+    let mockFolderInfo = null;
+
+    beforeEach(async () => {
+      await dbClient.db.collection('files').deleteMany({});
+      await dbClient.db.collection('users').deleteMany({});
+
+      // Add one user
+      [mockUserInfo, mockUserToken] = await addUser(mockUser);
+
+      // Add one folder
+      const mockFolder = {
+        userId: mockUserInfo.ops[0]._id,
+        name: 'Notes',
+        type: 'folder',
+        isPublic: true,
+        parentId: '0',
+      };
+      mockFolderInfo = await dbClient.db.collection('files').insertOne(mockFolder);
+
+      // Add 45 files
+      const files = [];
+      for (let i = 0; i < 45; i += 1) {
+        const mockFile = {
+          userId: mockUserInfo.ops[0]._id,
+          name: `file${i}`,
+          type: 'file',
+          isPublic: true,
+          parentId: mockFolderInfo.ops[0]._id,
+        };
+        files.push(mockFile);
+      }
+      await dbClient.db.collection('files').insertMany(files);
+    });
+
+    it('fails when user token is invalid', async () => {
+      const res = await request(app).get('/files/me')
+        .set('X-Token', `${mockUserToken}!`);
+      expect(res.statusCode).to.equal(401);
+      expect(res.body).to.deep.equal({ error: 'Unauthorized' });
+    });
+
+    it("successfully retrieves files with no 'page'", async () => {
+      const res = await request(app).get('/files/me')
+        .set('X-Token', `${mockUserToken}`);
+      expect(res.statusCode).to.equal(200);
+      expect(res.body.length).to.equal(20);
+      expect(res.body[0].userId).to.equal(mockUserInfo.ops[0]._id.toString());
+    });
+
+    it("successfully retrieves files for second 'page'", async () => {
+      const res = await request(app).get('/files/me')
+        .query({
+          page: 1,
+        })
+        .set('X-Token', `${mockUserToken}`);
+      expect(res.statusCode).to.equal(200);
+      expect(res.body.length).to.equal(20);
+
+      for (const file of res.body) {
+        const fileNum = Number(file.name.split('')[4]);
+        expect(fileNum).to.not.be.greaterThan(39);
+        expect(file.userId).to.equal(mockUserInfo.ops[0]._id.toString());
+        expect(file.parentId).to.equal(mockFolderInfo.ops[0]._id.toString());
+      }
+    });
+
+    it("retrieves no files with 'page' to far", async () => {
+      const res = await request(app).get('/files/me')
+        .query({
+          page: 5,
         })
         .set('X-Token', `${mockUserToken}`);
       expect(res.statusCode).to.equal(200);
@@ -481,7 +567,6 @@ describe('filesController', () => {
       await dbClient.db.collection('files').deleteMany({});
       await dbClient.db.collection('users').deleteMany({});
 
-      // Add 2 users
       // Add two users
       [mockUser0info, mockUser0Token] = await addUser({
         email: 'tester0@test.com',
@@ -536,6 +621,185 @@ describe('filesController', () => {
       });
 
       expect(file.isPublic).to.equal(false);
+    });
+  });
+
+  describe('dELETE /files', () => {
+    let mockUser0info = null;
+    let mockUser0Token = null;
+    let mockUser1Info = null;
+    let mockUser1Token = null;
+
+    // const mockFolderInfo = null;
+    let mockUser1FileInfo = null;
+
+    beforeEach(async () => {
+      await dbClient.db.collection('files').deleteMany({});
+      await dbClient.db.collection('users').deleteMany({});
+
+      // Add two users
+      [mockUser0info, mockUser0Token] = await addUser({
+        email: 'tester0@test.com',
+        password: sha1('secret~!'),
+      });
+
+      [mockUser1Info, mockUser1Token] = await addUser({
+        email: 'tester1@test.com',
+        password: sha1('secret~!'),
+      });
+
+      // Add one file
+      const mockUser1File = {
+        userId: mockUser1Info.ops[0]._id,
+        name: 'hello.txt',
+        type: 'file',
+        isPublic: true,
+        parentId: '0',
+      };
+      mockUser1FileInfo = await dbClient.db.collection('files').insertOne(mockUser1File);
+    });
+
+    it('fails when user token is invalid', async () => {
+      const res = await request(app).delete('/files/5f1e881cc7ba06511e683b23')
+        .set('X-Token', `${mockUser0Token}!`);
+      expect(res.statusCode).to.equal(401);
+      expect(res.body).to.deep.equal({ error: 'Unauthorized' });
+    });
+
+    it('fails when no file is linked to :id', async () => {
+      const res = await request(app).delete('/files/5f1e881cc7ba06511e683b23')
+        .set('X-Token', `${mockUser0Token}`);
+      expect(res.statusCode).to.equal(404);
+      expect(res.body).to.deep.equal({ error: 'Not found' });
+    });
+
+    it('fails when no file is linked to :id for this user', async () => {
+      const res = await request(app).delete(`/files/${mockUser1FileInfo.ops[0]._id.toString()}`)
+        .set('X-Token', `${mockUser0Token}`);
+      expect(res.statusCode).to.equal(403);
+      expect(res.body).to.deep.equal({ error: 'Permission denied' });
+    });
+
+    it.skip('successfully deletes file linked to :id for this user', async () => {
+    // create a file in DB and disk
+      const file = {
+        userId: mockUser1Info.ops[0]._id,
+        name: 'testFile',
+        type: 'file',
+        isPublic: true,
+        parentId: 0,
+      };
+      const fileInfo = await dbClient.db.collection('files').insertOne(file);
+      const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
+      const filePath = `${folderPath}/${fileInfo.ops[0]._id}`;
+      console.log(filePath);
+      await dbClient.db.collection('files').updateOne(
+        {
+          _id: fileInfo.insertedId,
+        },
+        { $set: { localPath: filePath } },
+      );
+      fs.writeFile(filePath, 'Hello!', () => {});
+
+      expect(fs.existsSync(filePath)).to.equal(true);
+
+      // Make delete request
+      const res = await request(app).delete(`/files/${fileInfo.ops[0]._id}`)
+        .set('X-Token', `${mockUser1Token}`);
+      expect(res.statusCode).to.equal(204);
+
+      const doc = await dbClient.db.collection('files').findOne({ _id: fileInfo.ops[0]._id });
+      expect(doc).to.equal(null);
+      setTimeout(() => {}, 20000);
+      expect(fs.existsSync(filePath)).to.equal(false);
+    });
+
+    it.skip('successfully deletes folder linked to :id for this user', async () => {
+    // create a folder in DB
+      const folder = {
+        userId: mockUser1Info.ops[0]._id,
+        name: 'testFolder',
+        type: 'folder',
+        isPublic: true,
+        parentId: 0,
+      };
+      const folderInfo = await dbClient.db.collection('files').insertOne(folder);
+      expect(folderInfo).is.not.equal(null);
+
+      // Make delete request
+      const res = await request(app).delete(`/files/${folderInfo.ops[0]._id.toString()}`)
+        .set('X-Token', `${mockUser1Token}`);
+      expect(res.statusCode).to.equal(204);
+
+      const doc = await dbClient.db.collection('files').findOne({ _id: folderInfo.ops[0]._id });
+      expect(doc).to.equal(null);
+    });
+
+    it.skip('successfully deletes a folder and its content', async () => {
+    // Add 2 folders
+      const folder1 = {
+        userId: mockUser0info.ops[0]._id,
+        name: 'pictures',
+        type: 'folder',
+        isPublic: true,
+        parentId: '0',
+      };
+      const folder1Info = await dbClient.db.collection('files').insertOne(folder1);
+
+      const folder2 = { ...folder1 };
+      folder2.name = 'videos';
+      folder2.parentId = folder1Info.ops[0]._id;
+      delete folder2._id;
+
+      const folder2Info = await dbClient.db.collection('files').insertOne(folder2);
+
+      const filesPath = [];
+      for (let i = 1; i <= 10; i += 1) {
+        let parentId = folder1Info.ops[0]._id;
+        if (i >= 5) parentId = folder2Info.ops[0]._id;
+
+        const mockFile = {
+          userId: mockUser0info.ops[0]._id,
+          name: `file${i}`,
+          type: 'file',
+          isPublic: true,
+          parentId,
+        };
+        // Add file in DB
+        const mockFileInfo = await dbClient.db.collection('files').insertOne(mockFile);
+        // Add file in disk
+        const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
+        const filePath = `${folderPath}/${mockFileInfo.ops[0]._id}`;
+        const fileContent = 'Hello!';
+
+        filesPath.push(filePath);
+
+        await dbClient.db.collection('files').updateOne(
+          {
+            _id: mockFileInfo.insertedId,
+          },
+          { $set: { localPath: filePath } },
+        );
+
+        fs.writeFile(filePath, fileContent, () => {});
+      }
+      console.log(filesPath);
+
+      // Make delete request
+      const res = await request(app).delete(`/files/${folder1Info.ops[0]._id.toString()}`)
+        .set('X-Token', `${mockUser0Token}`);
+      expect(res.statusCode).to.equal(204);
+      const doc = await dbClient.db.collection('files').findOne({ _id: folder1Info.ops[0]._id });
+      console.log('the doc is: ', doc);
+      // expect(doc).to.equal(null);
+
+      for (const path of filesPath) {
+        const id = path.split('r/')[1];
+        expect(fs.existsSync(path)).to.equal(false);
+        const doc = await dbClient.db.collection('files').findOne({ _id: id });
+
+        expect(doc).to.equal(null);
+      }
     });
   });
 
