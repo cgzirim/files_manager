@@ -27,8 +27,17 @@ router.get('/disconnect', AuthController.getDisconnect);
 /** Route to create a new file in DB and in disk */
 router.post('/files', FilesController.postUpload);
 
+/** Route to delete an existing file from DB and from disk */
+router.delete('/files/:id', FilesController.getDelete);
+
 /** Route to retrieve all users file document for a specific parentId */
 router.get('/files', FilesController.getIndex);
+
+/** Route to retrieve all file documents for a user */
+router.get('/files/me', FilesController.getMe);
+
+/** Route to retrieve file documents of type 'file' with specified keywords */
+router.get('/files/search', FilesController.getSearch);
 
 /** Route to retrieve a file document based on its ID */
 router.get('/files/:id', FilesController.getShow);
