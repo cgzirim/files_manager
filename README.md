@@ -22,8 +22,13 @@ Application
 |  [Mime-Types](https://www.npmjs.com/package/mime-types)     |  ^2.1.27   |
 
 ## Installation :rocket:
-- Clone this repository and go to the cloned repository's directory.
-- Install the packages using `yarn install` or `npm install`.
+To use this repository, you will need to clone it to your local machine. To do this, you will need to have Git installed on your computer.
+
+To clone the repository, run the following command:
+```
+git clone https://github.com/iChigozirim/alx-files_manager.git
+```
+In the local copy of the repository on your computer run `yarn install` or `npm install` to install the packages.
 
 ## Usage :bicyclist:
 #### Environment Variables
@@ -38,7 +43,7 @@ Application
 #### Running the server
 To run the server start the Redis and MongoDB services on your system and run the command `yarn start-server` or `npm run start-server`
 #### Running the worker
-The worker is the module that starts the job processes of the program. One of the jobs is responsible for sending an email using Gmail API. The credentials for the API should be stored in `utils/cedentials.json`.  
+The worker is the module that starts the job processes of the program. It is responsible for sending an email to users using Gmail API. The credentials for the Gmail API should be stored in `utils/cedentials.json`.  
 To start the worker, run the command `npm run start-worker`.
 
 ## API Documentation :round_pushpin:
