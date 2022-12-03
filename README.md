@@ -32,6 +32,7 @@ In the local copy of the repository on your computer run `yarn install` or `npm 
 
 ## Usage :bicyclist:
 #### Environment Variables
+The table below lists the environment variables that will be used by this server:
 |  Name  |  Required  |  Description  |
 |  ----  |  --------  |  -----------  |
 |  PORT  |  No (Default: `5000`)  | Port number the server should listen on. |
@@ -43,7 +44,13 @@ In the local copy of the repository on your computer run `yarn install` or `npm 
 #### Running the server
 To run the server start the Redis and MongoDB services on your system and run the command `yarn start-server` or `npm run start-server`
 #### Running the worker
-The worker is the module that starts the job processes of the program. It is responsible for sending an email to users using Gmail API. The credentials for the Gmail API should be stored in `utils/cedentials.json`.  
+The worker is the module that starts the job processes of the program. One of its responsibilities is sending an email to users using Gmail API. To use the Gmail API the credentials listed below most be available in `utils/cedentials.json`:
+- `user`: Email address of the account responsible for sending emails to users
+- `clientId`: ID of OAuth2 client used to identify client in the Google Cloud console 
+- `clientSecret`: OAuth client secret key
+- `redirectUri`: Redirect URI
+- `refreshToken`: Refresh token from OAuth2 authorization token  
+
 To start the worker, run the command `npm run start-worker`.
 
 ## API Documentation :round_pushpin:
