@@ -1,8 +1,7 @@
 import sha1 from 'sha1';
+import Bull from 'bull';
 import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
-
-const { ObjectId } = require('mongodb');
+import getUserWithToken from '../utils/helperFunc';
 
 class UsersContoller {
   /**
@@ -26,6 +25,10 @@ class UsersContoller {
     const hashedPwd = sha1(password);
     const user = await usersCollection.insertOne({ email, password: hashedPwd });
 
+    // Start a background processing for sending a “Welcome email” to the user
+    const fileQueue = new Bull('userQueue');
+    fileQueue.add({ userId: user.insertedId });
+
     return res.status(201).send({ id: user.insertedId, email });
   }
 
@@ -38,15 +41,8 @@ class UsersContoller {
    */
   static async getMe(req, res) {
     const token = req.header('X-Token') || null;
-    if (!token) return res.status(401).send({ error: 'Unauthorized' });
-
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
-
-    const usersCollection = dbClient.db.collection('users');
-    const user = await usersCollection.findOne({ _id: ObjectId(userId) });
-
-    if (!user) return res.status(401).send({ error: 'Unauthorized' });
+    const { user, userId } = await getUserWithToken(token);
+    if (!user || !userId) return res.status(401).send({ error: 'Unauthorized' });
 
     return res.status(200).send({ id: user._id, email: user.email });
   }
