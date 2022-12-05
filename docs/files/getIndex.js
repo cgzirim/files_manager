@@ -25,7 +25,7 @@ module.exports = {
     ],
     security: [
       {
-        authToken: [],
+        'Authorization Token': [],
       },
     ],
     responses: {

@@ -4,7 +4,7 @@ module.exports = {
     summary: 'Deletes the authorization token of a user',
     security: [
       {
-        authToken: [],
+        'Authorization Token': [],
       },
     ],
     responses: {

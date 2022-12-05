@@ -4,7 +4,7 @@ module.exports = {
     summary: "Get user's info",
     security: [
       {
-        authToken: [],
+        'Authorization Token': [],
       },
     ],
     responses: {

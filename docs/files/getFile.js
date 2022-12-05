@@ -25,7 +25,7 @@ module.exports = {
     produces: 'multipart/form-data',
     security: [
       {
-        authToken: [],
+        'Authorization Token': [],
       },
     ],
     responses: {

@@ -6,7 +6,7 @@ module.exports = {
     parameters: [],
     security: [
       {
-        authToken: [],
+        'Authorization Token': [],
       },
     ],
     requestBody: {
