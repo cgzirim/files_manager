@@ -11,7 +11,7 @@
     "dev": "nodemon --exec babel-node --presets @babel/preset-env",
     "test": "./node_modules/.bin/mocha --require @babel/register --exit"
   },
-  "author": "",
+  "author": "Chigozirim Igweamaka <cgzirim@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.1",
