@@ -1,7 +1,7 @@
 module.exports = {
   get: {
     tags: ['File Operations'],
-    summary: 'Download a file',
+    summary: 'Download / View a file',
     description: 'Retrieves the content of a file stored in disk.',
     parameters: [
       {
