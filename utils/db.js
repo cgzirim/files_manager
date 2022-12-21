@@ -1,4 +1,7 @@
-import { MongoClient, Server } from 'mongodb';
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 class DBClient {
   constructor() {
@@ -6,7 +9,9 @@ class DBClient {
     const port = process.env.DB_PORT || '27017';
     const database = process.env.DB_DATABASE || 'files_manager';
 
-    MongoClient.connect(new Server(host, port)).then((client) => {
+    const url = `mongodb://${host}:${port}`;
+    const client = new MongoClient(url, { useNewUrlParser: true, useUnifiedTopology: true });
+    client.connect().then((client) => {
       this.db = client.db(database);
       this.usersCollection = this.db.collection('users');
       this.filesCollection = this.db.collection('files');
@@ -28,4 +33,3 @@ class DBClient {
 
 const dbClient = new DBClient();
 module.exports = dbClient;
- 

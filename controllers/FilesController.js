@@ -2,6 +2,7 @@
 import Bull from 'bull';
 import mime from 'mime-types';
 import { promisify } from 'util';
+import dotenv from 'dotenv';
 import dbClient from '../utils/db';
 import getUserWithToken from '../utils/helperFunc';
 
@@ -9,6 +10,7 @@ const fs = require('fs');
 const { ObjectId } = require('mongodb');
 const { exec } = require('child_process');
 
+dotenv.config();
 const execAsyc = promisify(exec);
 
 async function recursiveDelete(fileToDelete, filesCollection) {
@@ -117,7 +119,11 @@ class FilesController {
     if (newFile.type === 'image') {
       // create a job that will be processed in the background to generate
       // thumbnails for the file.
-      const fileQueue = new Bull('file-queue');
+      const RedisOpts = {
+        port: process.env.RD_PORT || '6379',
+        host: process.env.RD_HOST || '127.0.0.1',
+      };
+      const fileQueue = new Bull('file-queue', { redis: RedisOpts });
       fileQueue.add({ userId, fileId: insertInfo.insertedId });
     }
 

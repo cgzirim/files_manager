@@ -1,13 +1,21 @@
 import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
-import credentials from './credentials';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const user = process.env.EMAIL_ADD;
+const clientId = process.env.CLIENT_ID;
+const clientSecret = process.env.CLIENT_SECRET;
+const redirectUri = process.env.REDIRECT_URI;
+const refreshToken = process.env.REFRESH_TOKEN;
 
 const OAuth2Client = new google.auth.OAuth2(
-  credentials.clientId,
-  credentials.clientSecret,
-  credentials.redirectUri,
+  clientId,
+  clientSecret,
+  redirectUri,
 );
-OAuth2Client.setCredentials({ refresh_token: credentials.refreshToken });
+OAuth2Client.setCredentials({ refresh_token: refreshToken });
 
 /**
  * Sends an email to specifed email address using Gmail API
@@ -21,10 +29,10 @@ async function sendMail(mailOptions) {
       service: 'gmail',
       auth: {
         type: 'OAuth2',
-        user: credentials.user,
-        clientId: credentials.clientId,
-        clientSecret: credentials.clientSecret,
-        refreshToken: credentials.refreshToken,
+        user,
+        clientId,
+        clientSecret,
+        refreshToken,
         accessToken,
 
       },

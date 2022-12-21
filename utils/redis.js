@@ -1,9 +1,14 @@
 import { createClient } from 'redis';
 import { promisify } from 'util';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 class RedisClient {
   constructor() {
-    this.client = createClient();
+    const host = process.env.RD_HOST || 'localhost';
+    const port = process.env.RD_PORT || '6379';
+    this.client = createClient({ host, port });
     this.get = promisify(this.client.get).bind(this.client);
     this.client.on('error', (err) => console.log(err.message));
   }
@@ -28,4 +33,3 @@ class RedisClient {
 
 const redisClient = new RedisClient();
 module.exports = redisClient;
- 

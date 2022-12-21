@@ -1,7 +1,10 @@
 import sha1 from 'sha1';
 import Bull from 'bull';
+import dotenv from 'dotenv';
 import dbClient from '../utils/db';
 import getUserWithToken from '../utils/helperFunc';
+
+dotenv.config();
 
 class UsersContoller {
   /**
@@ -26,8 +29,12 @@ class UsersContoller {
     const user = await usersCollection.insertOne({ email, password: hashedPwd });
 
     // Start a background processing for sending a “Welcome email” to the user
-    const fileQueue = new Bull('userQueue');
-    fileQueue.add({ userId: user.insertedId });
+    const RedisOpts = {
+      port: process.env.RD_PORT || '6379',
+      host: process.env.RD_HOST || '127.0.0.1',
+    };
+    const userQueue = new Bull('userQueue', { redis: RedisOpts });
+    userQueue.add({ userId: user.insertedId });
 
     return res.status(201).send({ id: user.insertedId, email });
   }

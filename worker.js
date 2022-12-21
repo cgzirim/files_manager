@@ -1,15 +1,21 @@
 import Bull from 'bull';
 import { promisify } from 'util';
 import imageThumbnail from 'image-thumbnail';
+import dotenv from 'dotenv';
 import dbClient from './utils/db';
-import credentials from './utils/credentials';
 import sendMail from './utils/mailer';
+
+dotenv.config();
 
 const fs = require('fs');
 const { ObjectId } = require('mongodb');
 
-const fileQueue = new Bull('file-queue');
-const userQueue = new Bull('userQueue');
+const RedisOpts = {
+  port: process.env.RD_PORT || '6379',
+  host: process.env.RD_HOST || '127.0.0.1',
+};
+const fileQueue = new Bull('file-queue', { redis: RedisOpts });
+const userQueue = new Bull('userQueue', { redis: RedisOpts });
 
 // Generate 3 thumbnails with width = 100, 250 and 500 for each file
 // found in file-queue jobs
@@ -55,7 +61,7 @@ userQueue.process(async (job, done) => {
 
   const username = user.email.split('@')[0];
   const mailOptions = {
-    from: `ALX Files Manager <${credentials.user}>`,
+    from: `ALX Files Manager <${process.env.EMAIL_ADD}>`,
     to: user.email,
     subject: 'Welcome to ALX-Files_Manager by Chigozirim',
     html: [
@@ -69,7 +75,9 @@ userQueue.process(async (job, done) => {
       '</div>',
     ].join(''),
   };
-  sendMail(mailOptions)
-    .then((result) => done(result))
-    .catch((error) => done(error));
+  try {
+    sendMail(mailOptions)
+      .then((result) => done(result))
+      .catch((error) => done(error));
+  } catch (error) { console.log(error); }
 });
