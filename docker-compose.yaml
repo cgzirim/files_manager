@@ -1,0 +1,27 @@
+version: '3'
+services:
+  files-manager:
+      image: public.ecr.aws/u7n1u2r3/files-manager:1.4
+      ports:
+        - 5000:5000
+      links:
+        - redis-server
+        - mongodb
+      volumes:
+        - mongo-data:/data/db
+      environment:
+        - DB_HOST=mongodb
+        - RD_HOST=redis-server
+        - EMAIL_ADD=
+        - CLIENT_ID=
+        - CLIENT_SECRET=
+        - REDIRECT_URI=
+        - REFRESH_TOKEN=
+  mongodb:
+    image: mongo:latest
+  redis-server:
+    image: redis
+
+volumes:
+  mongo-data:
+    driver: local
