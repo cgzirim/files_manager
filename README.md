@@ -54,7 +54,7 @@ The worker is the module that starts the job processes of the program. One of it
 To start the worker, run the command `npm run start-worker`.
 
 ## API Documentation :round_pushpin:
-All endpoints have been documented with [Swagger](https:swagger.io) [here]().
+All endpoints have been documented with [Swagger](https:swagger.io) [here](http://54.144.2.187:5000/api-docs).
 
 ## Tests
 Unittest for the program are defined in the [test](./tests) folder. To execute a test run `npm run tests <test_file>`. For example:
