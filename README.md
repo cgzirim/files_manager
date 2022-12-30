@@ -52,7 +52,7 @@ The table below lists the environment variables that will be used by the server.
 #### Running the app in docker
 To run the app in Docker update [docker-compose.yaml](./docker-compose.yaml) with the required environment virables and run the following command to run the container in detached mode:
 ```
-docker-compose -f docker-compose.yaml -d
+docker-compose -f docker-compose.yaml up -d
 ```
 #### Running the app locally
 In the local copy of the repository on your computer run `yarn install` or `npm install` to install the packages.
