@@ -43,6 +43,8 @@ fileQueue.process(async (job, done) => {
 
     thumbnail = await imageThumbnail(file.localPath, { width: 500 });
     await writeFileAsync(`${file.localPath}_500`, thumbnail);
+    
+    done()
   } catch (err) {
     console.log(done(new Error(err)));
   }
