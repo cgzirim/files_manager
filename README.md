@@ -71,4 +71,4 @@ $ npm run tests tests/controllers/FilesController.test.js
 
 ## Author :black_nib:
 
-* **Chigozirim Igweamaka** - <[iChigozirim](https://github.com/iChigozirim)>
+* **Chigozirim Igweamaka** - <[cgzirim](https://github.com/cgzirim)>
